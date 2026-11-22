@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanctuary — Minimalist Study Timer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out forwards',
+                        'pulse-slow': 'pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(6px) scale(0.98)' },
+                            '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom glassmorphism & scrollbar refinements */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #09090b;
+            color: #f4f4f5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .glass-panel {
+            background: rgba(10, 12, 20, 0.24);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 243, 255, 0.32);
+            box-shadow: 0 0 22px rgba(0, 243, 255, 0.14), inset 0 0 12px rgba(0, 243, 255, 0.06);
+        }
+
+        .glass-pill {
+            background: rgba(10, 12, 20, 0.26);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 243, 255, 0.28);
+            box-shadow: 0 0 14px rgba(0, 243, 255, 0.12);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-pill:hover {
+            background: rgba(0, 243, 255, 0.12);
+            border-color: rgba(0, 243, 255, 0.7);
+            box-shadow: 0 0 18px rgba(0, 243, 255, 0.35), inset 0 0 8px rgba(0, 243, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .glass-pill:active {
+            transform: translateY(0px) scale(0.97);
+        }
+
+        /* Neon Typography & Button Glows */
+        .neon-cyan-text {
+            color: #e0fcff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 8px rgba(0, 243, 255, 0.8), 0 0 18px rgba(0, 243, 255, 0.45);
+        }
+
+        .neon-pink-text {
+            color: #ffe0f0;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 8px rgba(255, 42, 133, 0.8), 0 0 18px rgba(255, 42, 133, 0.45);
+        }
+
+        .neon-btn-cyan {
+            background: rgba(0, 243, 255, 0.14);
+            border: 1px solid rgba(0, 243, 255, 0.65);
+            color: #e6fdff;
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.8);
+            box-shadow: 0 0 14px rgba(0, 243, 255, 0.28), inset 0 0 8px rgba(0, 243, 255, 0.15);
+        }
+
+        .neon-btn-cyan:hover {
+            background: rgba(0, 243, 255, 0.26);
+            border-color: #00f3ff;
+            box-shadow: 0 0 22px rgba(0, 243, 255, 0.55), inset 0 0 12px rgba(0, 243, 255, 0.25);
+        }
+
+        .neon-btn-pink {
+            background: rgba(255, 42, 133, 0.14);
+            border: 1px solid rgba(255, 42, 133, 0.65);
+            color: #ffe6f2;
+            text-shadow: 0 0 8px rgba(255, 42, 133, 0.8);
+            box-shadow: 0 0 14px rgba(255, 42, 133, 0.28), inset 0 0 8px rgba(255, 42, 133, 0.15);
+        }
+
+        .neon-btn-pink:hover {
+            background: rgba(255, 42, 133, 0.26);
+            border-color: #ff2a85;
+            box-shadow: 0 0 22px rgba(255, 42, 133, 0.55), inset 0 0 12px rgba(255, 42, 133, 0.25);
+        }
+
+        .neon-icon-btn {
+            background: rgba(10, 12, 20, 0.28);
+            border: 1px solid rgba(184, 41, 255, 0.4);
+            color: #f3d9ff;
+            box-shadow: 0 0 10px rgba(184, 41, 255, 0.18);
+        }
+
+        .neon-icon-btn:hover {
+            background: rgba(184, 41, 255, 0.2);
+            border-color: #b829ff;
+            color: #ffffff;
+            box-shadow: 0 0 16px rgba(184, 41, 255, 0.45);
+        }
+
+        /* Tabular numerals for smooth timer countdown without jitter */
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Subtle custom scrollbar for lists */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Animated ambient fallback gradient in case remote video fails/loads slowly */
+        .ambient-fallback {
+            background: radial-gradient(circle at 20% 25%, #1e1b4b 0%, #0f172a 45%, #09090b 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 18s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+</head>
+<body class="relative select-none">
+
+    <!-- ==================== FULLSCREEN BACKGROUND LAYER ==================== -->
+    <div id="bg-container" class="fixed inset-0 z-0 overflow-hidden ambient-fallback">
+        <!-- Video Background Element -->
+        <video 
+            id="bg-video" 
+            class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700 ease-in-out"
+            autoplay 
+            loop 
+            muted 
+            playsinline
+        ></video>
+
+        <!-- Image Background Element (for uploaded images) -->
+        <img 
+            id="bg-image" 
+            alt="Study ambiance background"
+            class="hidden absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700 ease-in-out"
+        />
+
+        <!-- Subtle Vignette & Contrast Overlay so HUD & Timer stay effortlessly legible -->
+        <div class="absolute inset-0 bg-gradient-to-b from-black/35 via-black/15 to-black/45 pointer-events-none"></div>
+    </div>
+
+    <!-- ==================== TOP HUD BAR ==================== -->
+    <header class="fixed top-0 left-0 right-0 z-30 flex items-center justify-between p-4 sm:p-6 pointer-events-none">
+        
+        <!-- Left: Brand & Active Scene Badge -->
+        <div class="flex items-center gap-2.5 pointer-events-auto">
+            <div class="glass-pill px-3 py-1.5 rounded-full flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-[#00f3ff] shadow-[0_0_10px_#00f3ff] animate-pulse"></span>
+                <span class="text-[11px] font-semibold tracking-wider uppercase neon-cyan-text">Sanctuary</span>
+                <span class="text-[#00f3ff]/40">|</span>
+                <span id="current-bg-label" class="text-[11px] font-medium text-white/90 drop-shadow max-w-[120px] sm:max-w-[180px] truncate">
+                    Aquatic Room
+                </span>
+            </div>
+        </div>
+
+        <!-- Right: Total Study Time Button & Drawer Trigger -->
+        <div class="relative pointer-events-auto">
+            <button 
+                id="stats-toggle-btn"
+                type="button"
+                class="glass-pill px-3.5 py-1.5 rounded-full flex items-center gap-2 text-xs font-medium neon-cyan-text cursor-pointer"
+                title="View Total Study Time & Session History"
+            >
+                <!-- Clock/Spark Icon -->
+                <svg class="w-3.5 h-3.5 text-[#00f3ff] shrink-0 drop-shadow-[0_0_6px_rgba(0,243,255,0.8)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <polyline points="12 7 12 12 15 15"></polyline>
+                </svg>
+                <span id="total-study-badge">Total Focus: 0m</span>
+                <svg class="w-3.5 h-3.5 text-[#00f3ff]/70 transition-transform duration-200" id="stats-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+
+            <!-- Study Stats Popover Panel -->
+            <div 
+                id="stats-popover"
+                class="hidden absolute right-0 mt-2.5 w-72 sm:w-80 glass-panel rounded-2xl p-4 text-left animate-fade-in z-50 bg-[#080a12]/80"
+            >
+                <div class="flex items-center justify-between pb-2.5 border-b border-[#00f3ff]/20">
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider neon-cyan-text">Study Progress</h3>
+                        <p class="text-[10px] text-white/60">Automatically saved in browser</p>
+                    </div>
+                    <button 
+                        id="close-stats-btn"
+                        type="button"
+                        class="p-1 rounded-lg text-white/60 hover:text-[#00f3ff] hover:bg-[#00f3ff]/10 transition"
+                        aria-label="Close stats"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Summary Metric Cards -->
+                <div class="grid grid-cols-2 gap-2.5 my-3">
+                    <div class="bg-black/35 border border-[#00f3ff]/25 rounded-xl p-2.5">
+                        <span class="text-[10px] uppercase tracking-wider text-[#00f3ff]/75 block">Total Focus</span>
+                        <span id="stat-total-time" class="text-base font-semibold neon-cyan-text mt-0.5 block tabular-nums">0h 0m</span>
+                    </div>
+                    <div class="bg-black/35 border border-[#ff2a85]/25 rounded-xl p-2.5">
+                        <span class="text-[10px] uppercase tracking-wider text-[#ff2a85]/80 block">Pomodoros</span>
+                        <span id="stat-total-sessions" class="text-base font-semibold neon-pink-text mt-0.5 block tabular-nums">0</span>
+                    </div>
+                </div>
+
+                <!-- Recent Sessions List -->
+                <div class="mb-3">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-medium text-white/80">Recent Sessions</span>
+                    </div>
+                    <div id="session-history-list" class="max-h-32 overflow-y-auto space-y-1.5 pr-1">
+                        <p class="text-[11px] text-white/50 italic py-2 text-center">Complete a focus session to log progress.</p>
+                    </div>
+                </div>
+
+                <!-- Footer Reset Action (with safe two-click confirmation, no alert/confirm) -->
+                <div class="pt-2.5 border-t border-[#00f3ff]/20 flex items-center justify-between">
+                    <span class="text-[10px] text-white/50">Persists across reloads</span>
+                    <button 
+                        id="reset-stats-btn"
+                        type="button"
+                        class="text-[11px] font-medium neon-pink-text px-2 py-0.5 rounded-lg border border-[#ff2a85]/40 hover:bg-[#ff2a85]/20 transition"
+                    >
+                        Reset Stats
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==================== CENTER ULTRA-COMPACT TRANSPARENT POMODORO CARD ==================== -->
+    <main class="relative z-20 flex items-center justify-center w-full h-full px-4 pointer-events-none">
+        <section 
+            id="pomodoro-card"
+            aria-label="Pomodoro Focus Timer"
+            class="glass-panel pointer-events-auto w-full max-w-[248px] rounded-2xl px-4 py-3.5 text-center transition-all duration-300"
+        >
+            <!-- Compact Mode Selector Pills -->
+            <div class="inline-flex items-center p-0.5 rounded-full bg-black/30 border border-[#00f3ff]/25 mb-2.5">
+                <button 
+                    type="button"
+                    data-mode="focus"
+                    class="mode-btn px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide transition-all duration-200 neon-btn-cyan"
+                >
+                    Focus
+                </button>
+                <button 
+                    type="button"
+                    data-mode="short"
+                    class="mode-btn px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide transition-all duration-200 text-white/65 hover:text-[#ff2a85]"
+                >
+                    Short
+                </button>
+                <button 
+                    type="button"
+                    data-mode="long"
+                    class="mode-btn px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide transition-all duration-200 text-white/65 hover:text-[#ff2a85]"
+                >
+                    Long
+                </button>
+            </div>
+
+            <!-- Compact Neon Timer Display -->
+            <div class="relative my-1 flex flex-col items-center justify-center">
+                <div 
+                    id="timer-display" 
+                    class="font-mono text-[44px] font-semibold tracking-tight neon-cyan-text tabular-nums leading-none"
+                >
+                    25:00
+                </div>
+                <p id="timer-status-text" class="text-[10px] font-medium text-white/75 drop-shadow mt-1.5 tracking-wider uppercase">
+                    Ready to focus
+                </p>
+            </div>
+
+            <!-- Thin Neon Progress Bar -->
+            <div class="w-full h-1 bg-black/40 border border-white/10 rounded-full overflow-hidden my-3">
+                <div 
+                    id="timer-progress-bar" 
+                    class="h-full bg-gradient-to-r from-[#00f3ff] via-[#b829ff] to-[#ff2a85] shadow-[0_0_10px_#00f3ff] rounded-full transition-all duration-500 ease-out"
+                    style="width: 100%;"
+                ></div>
+            </div>
+
+            <!-- Compact Primary Controls: Reset, Start/Pause, Settings -->
+            <div class="flex items-center justify-center gap-2">
+                <!-- Reset Button -->
+                <button 
+                    id="reset-timer-btn"
+                    type="button"
+                    title="Reset Timer"
+                    aria-label="Reset Timer"
+                    class="p-2 rounded-xl neon-icon-btn transition active:scale-95 cursor-pointer"
+                >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <path d="M3 3v5h5"></path>
+                    </svg>
+                </button>
+
+                <!-- Start / Pause Main Neon Button -->
+                <button 
+                    id="start-pause-btn"
+                    type="button"
+                    class="flex-1 py-2 px-4 rounded-xl neon-btn-cyan font-semibold text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-1.5 active:scale-[0.97] cursor-pointer"
+                >
+                    <svg id="play-icon" class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <svg id="pause-icon" class="hidden w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                    <span id="start-pause-label">Start</span>
+                </button>
+
+                <!-- Customize Durations Toggle -->
+                <button 
+                    id="timer-settings-btn"
+                    type="button"
+                    title="Customize Focus Duration"
+                    aria-label="Customize Focus Duration"
+                    class="p-2 rounded-xl neon-icon-btn transition active:scale-95 cursor-pointer"
+                >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Collapsible Inline Duration Customizer -->
+            <div id="duration-customizer" class="hidden mt-3 pt-2.5 border-t border-[#00f3ff]/20 animate-fade-in">
+                <div class="grid grid-cols-3 gap-1.5 text-left">
+                    <div>
+                        <label for="input-focus-min" class="block text-[9px] uppercase tracking-wider text-[#00f3ff]/80 mb-0.5">Focus</label>
+                        <input id="input-focus-min" type="number" min="1" max="180" value="25" class="w-full bg-black/50 border border-[#00f3ff]/35 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-[#00f3ff]">
+                    </div>
+                    <div>
+                        <label for="input-short-min" class="block text-[9px] uppercase tracking-wider text-[#ff2a85]/80 mb-0.5">Short</label>
+                        <input id="input-short-min" type="number" min="1" max="60" value="5" class="w-full bg-black/50 border border-[#ff2a85]/35 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-[#ff2a85]">
+                    </div>
+                    <div>
+                        <label for="input-long-min" class="block text-[9px] uppercase tracking-wider text-[#b829ff]/80 mb-0.5">Long</label>
+                        <input id="input-long-min" type="number" min="1" max="90" value="15" class="w-full bg-black/50 border border-[#b829ff]/35 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-[#b829ff]">
+                    </div>
+                </div>
+                <div class="flex justify-end mt-2">
+                    <button id="save-durations-btn" type="button" class="text-[10px] font-semibold uppercase tracking-wider neon-btn-cyan px-2.5 py-1 rounded-lg transition">
+                        Apply
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ==================== BOTTOM BACKGROUND CONTROLS BAR ==================== -->
+    <footer class="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between p-4 sm:p-6 pointer-events-none">
+        
+        <!-- Left: Switch Scene & Manage Playlist -->
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <!-- Cycle Next Background Button -->
+            <button 
+                id="switch-bg-btn"
+                type="button"
+                class="glass-pill px-3.5 py-2 rounded-full flex items-center gap-2 text-xs font-medium neon-cyan-text cursor-pointer"
+                title="Switch to next background scene"
+            >
+                <svg class="w-3.5 h-3.5 text-[#00f3ff] drop-shadow-[0_0_6px_rgba(0,243,255,0.85)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="16 3 21 3 21 8"></polyline>
+                    <line x1="4" y1="20" x2="21" y2="3"></line>
+                    <polyline points="21 16 21 21 16 21"></polyline>
+                    <line x1="15" y1="15" x2="21" y2="21"></line>
+                    <line x1="4" y1="4" x2="9" y2="9"></line>
+                </svg>
+                <span>Switch Scene</span>
+                <span id="bg-counter-pill" class="text-[10px] px-1.5 py-0.2 rounded-full bg-[#00f3ff]/15 border border-[#00f3ff]/40 text-[#e0fcff]">1/2</span>
+            </button>
+
+            <!-- Background Playlist Drawer Toggle -->
+            <button 
+                id="playlist-toggle-btn"
+                type="button"
+                class="glass-pill p-2 rounded-full neon-cyan-text cursor-pointer"
+                title="Manage Backgrounds"
+                aria-label="Manage Backgrounds"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Right: Upload Custom Background Button -->
+        <div class="pointer-events-auto">
+            <input 
+                id="bg-file-input" 
+                type="file" 
+                accept="video/mp4,video/webm,image/jpeg,image/png,image/webp" 
+                multiple
+                class="hidden"
+            />
+            <button 
+                id="upload-bg-btn"
+                type="button"
+                class="glass-pill neon-btn-pink px-3.5 py-2 rounded-full flex items-center gap-2 text-xs font-medium cursor-pointer"
+                title="Upload your own video (.mp4, .webm) or image background"
+            >
+                <svg class="w-3.5 h-3.5 text-[#ff2a85] drop-shadow-[0_0_6px_rgba(255,42,133,0.9)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span>Upload BG</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- ==================== BACKGROUND PLAYLIST DRAWER ==================== -->
+    <div 
+        id="playlist-drawer"
+        class="hidden fixed bottom-16 left-4 sm:left-6 z-40 w-68 sm:w-76 glass-panel bg-[#080a12]/80 rounded-2xl p-3.5 animate-fade-in"
+    >
+        <div class="flex items-center justify-between pb-2 mb-2 border-b border-[#00f3ff]/20">
+            <div>
+                <h3 class="text-[11px] font-semibold uppercase tracking-wider neon-cyan-text">Background Scenes</h3>
+                <p class="text-[10px] text-white/55">Saved locally in IndexedDB</p>
+            </div>
+            <button 
+                id="close-playlist-btn"
+                type="button"
+                class="p-1 rounded-lg text-white/60 hover:text-[#00f3ff] hover:bg-[#00f3ff]/10 transition"
+                aria-label="Close playlist"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div id="bg-playlist-items" class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+            <!-- Populated dynamically via JavaScript -->
+        </div>
+    </div>
+
+    <!-- ==================== NON-INTRUSIVE TOAST NOTIFICATION ==================== -->
+    <div 
+        id="toast-banner"
+        class="fixed top-16 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-2"
+    >
+        <div class="glass-panel bg-[#080a12]/80 px-3.5 py-1.5 rounded-full flex items-center gap-2 text-xs font-medium neon-cyan-text shadow-xl">
+            <span id="toast-dot" class="w-2 h-2 rounded-full bg-[#00f3ff] shadow-[0_0_8px_#00f3ff]"></span>
+            <span id="toast-message">Notification</span>
+        </div>
+    </div>
+
+    <!-- ==================== APPLICATION SCRIPT ==================== -->
+    <script>
+        /**
+         * Sanctuary — Minimalist Study Timer & Persistent Looping Background Manager
+         * Architecture:
+         * 1. IndexedDB Storage Layer (`SanctuaryDB`): Stores user-uploaded video/image Blobs reliably beyond localStorage limits.
+         * 2. LocalStorage State Layer: Saves active background index, Pomodoro timer state (mode, remaining seconds, running status, last timestamp), custom durations, and cumulative study stats.
+         * 3. Web Audio API Chime: Synthesizes a gentle harmonic bell upon timer completion without external audio assets.
+         */
+
+        (() => {
+            // -------------------- CONSTANTS & DEFAULT ASSETS --------------------
+            const DEFAULT_BACKGROUNDS = [
+                {
+                    id: 'default-aquatic-room',
+                    name: 'Aquatic Room',
+                    type: 'video',
+                    url: 'https://prodpod.app/bg/aquatic-room.mp4',
+                    isDefault: true
+                },
+                {
+                    id: 'default-city-night',
+                    name: 'City Night',
+                    type: 'video',
+                    url: 'https://prodpod.app/bg/city-night.mp4',
+                    isDefault: true
+                }
+            ];
+
+            const STORAGE_KEYS = {
+                BG_INDEX: 'sanctuary_active_bg_index_v1',
+                TIMER_STATE: 'sanctuary_timer_state_v1',
+                STUDY_STATS: 'sanctuary_study_stats_v1'
+            };
+
+            const DB_NAME = 'SanctuaryMediaDB';
+            const DB_VERSION = 1;
+            const STORE_NAME = 'backgrounds';
+
+            // -------------------- APPLICATION STATE --------------------
+            let backgrounds = [...DEFAULT_BACKGROUNDS];
+            let currentBgIndex = 0;
+            let activeObjectUrls = []; // Track blob URLs to revoke on cleanup
+
+            let durations = {
+                focus: 25,
+                short: 5,
+                long: 15
+            };
+
+            let timerState = {
+                mode: 'focus',          // 'focus' | 'short' | 'long'
+                remainingSeconds: 25 * 60,
+                totalSeconds: 25 * 60,
+                isRunning: false,
+                lastTickTimestamp: null
+            };
+
+            let studyStats = {
+                totalFocusSeconds: 0,
+                completedPomodoros: 0,
+                history: [] // Array of { id, minutes, completedAt }
+            };
+
+            let timerInterval = null;
+            let toastTimeout = null;
+            let resetConfirmPending = false;
+            let resetConfirmTimeout = null;
+
+            // -------------------- DOM ELEMENTS --------------------
+            const bgVideo = document.getElementById('bg-video');
+            const bgImage = document.getElementById('bg-image');
+            const currentBgLabel = document.getElementById('current-bg-label');
+            const bgCounterPill = document.getElementById('bg-counter-pill');
+            const switchBgBtn = document.getElementById('switch-bg-btn');
+            const uploadBgBtn = document.getElementById('upload-bg-btn');
+            const bgFileInput = document.getElementById('bg-file-input');
+            const playlistToggleBtn = document.getElementById('playlist-toggle-btn');
+            const playlistDrawer = document.getElementById('playlist-drawer');
+            const closePlaylistBtn = document.getElementById('close-playlist-btn');
+            const bgPlaylistItems = document.getElementById('bg-playlist-items');
+
+            const timerDisplay = document.getElementById('timer-display');
+            const timerStatusText = document.getElementById('timer-status-text');
+            const timerProgressBar = document.getElementById('timer-progress-bar');
+            const startPauseBtn = document.getElementById('start-pause-btn');
+            const startPauseLabel = document.getElementById('start-pause-label');
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            const resetTimerBtn = document.getElementById('reset-timer-btn');
+            const pomodoroCard = document.getElementById('pomodoro-card');
+            const modeBtns = document.querySelectorAll('.mode-btn');
+
+            const timerSettingsBtn = document.getElementById('timer-settings-btn');
+            const durationCustomizer = document.getElementById('duration-customizer');
+            const inputFocusMin = document.getElementById('input-focus-min');
+            const inputShortMin = document.getElementById('input-short-min');
+            const inputLongMin = document.getElementById('input-long-min');
+            const saveDurationsBtn = document.getElementById('save-durations-btn');
+
+            const statsToggleBtn = document.getElementById('stats-toggle-btn');
+            const statsPopover = document.getElementById('stats-popover');
+            const closeStatsBtn = document.getElementById('close-stats-btn');
+            const statsChevron = document.getElementById('stats-chevron');
+            const totalStudyBadge = document.getElementById('total-study-badge');
+            const statTotalTime = document.getElementById('stat-total-time');
+            const statTotalSessions = document.getElementById('stat-total-sessions');
+            const sessionHistoryList = document.getElementById('session-history-list');
+            const resetStatsBtn = document.getElementById('reset-stats-btn');
+
+            const toastBanner = document.getElementById('toast-banner');
+            const toastMessage = document.getElementById('toast-message');
+            const toastDot = document.getElementById('toast-dot');
+
+            // -------------------- UTILITY FUNCTIONS --------------------
+            function showToast(message, type = 'success') {
+                if (toastTimeout) clearTimeout(toastTimeout);
+                toastMessage.textContent = message;
+                toastDot.className = `w-2 h-2 rounded-full ${
+                    type === 'error' ? 'bg-rose-400' : type === 'info' ? 'bg-sky-400' : 'bg-emerald-400'
+                }`;
+                toastBanner.classList.remove('opacity-0', '-translate-y-2');
+                toastBanner.classList.add('opacity-100', 'translate-y-0');
+
+                toastTimeout = setTimeout(() => {
+                    toastBanner.classList.remove('opacity-100', 'translate-y-0');
+                    toastBanner.classList.add('opacity-0', '-translate-y-2');
+                }, 3000);
+            }
+
+            function formatSecondsToMMSS(totalSec) {
+                const clamped = Math.max(0, Math.floor(totalSec));
+                const mins = Math.floor(clamped / 60);
+                const secs = clamped % 60;
+                return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+
+            function formatStudyDuration(totalSeconds) {
+                const totalMinutes = Math.floor(totalSeconds / 60);
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = totalMinutes % 60;
+                if (hours > 0) {
+                    return `${hours}h ${minutes}m`;
+                }
+                return `${minutes}m`;
+            }
+
+            // -------------------- WEB AUDIO CHIME --------------------
+            function playCompletionChime() {
+                try {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioCtx) return;
+                    const ctx = new AudioCtx();
+                    const now = ctx.currentTime;
+
+                    // Gentle harmonic triad (C5, E5, G5, B5)
+                    const frequencies = [523.25, 659.25, 783.99, 987.77];
+                    frequencies.forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.14);
+
+                        gain.gain.setValueAtTime(0.0001, now + idx * 0.14);
+                        gain.gain.exponentialRampToValueAtTime(0.12, now + idx * 0.14 + 0.05);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.14 + 1.6);
+
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+
+                        osc.start(now + idx * 0.14);
+                        osc.stop(now + idx * 0.14 + 1.7);
+                    });
+                } catch (err) {
+                    console.warn('Web Audio chime skipped:', err);
+                }
+            }
+
+            // -------------------- INDEXEDDB FOR UPLOADED BACKGROUNDS --------------------
+            function openMediaDB() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                        }
+                    };
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            async function getAllUploadedBackgrounds() {
+                try {
+                    const db = await openMediaDB();
+                    return new Promise((resolve, reject) => {
+                        const tx = db.transaction(STORE_NAME, 'readonly');
+                        const store = tx.objectStore(STORE_NAME);
+                        const req = store.getAll();
+                        req.onsuccess = () => resolve(req.result || []);
+                        req.onerror = () => reject(req.error);
+                    });
+                } catch (err) {
+                    console.error('Failed to read IndexedDB backgrounds:', err);
+                    return [];
+                }
+            }
+
+            async function saveUploadedBackgroundToDB(item) {
+                const db = await openMediaDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    const req = store.put(item);
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => reject(req.error);
+                });
+            }
+
+            async function deleteUploadedBackgroundFromDB(id) {
+                const db = await openMediaDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    const req = store.delete(id);
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => reject(req.error);
+                });
+            }
+
+            // -------------------- BACKGROUND MANAGEMENT --------------------
+            async function initBackgrounds() {
+                const storedUploads = await getAllUploadedBackgrounds();
+                // Sort uploads by creation timestamp
+                storedUploads.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+                const mappedUploads = storedUploads.map(record => {
+                    const objectUrl = URL.createObjectURL(record.blob);
+                    activeObjectUrls.push(objectUrl);
+                    return {
+                        id: record.id,
+                        name: record.name,
+                        type: record.type, // 'video' or 'image'
+                        url: objectUrl,
+                        isDefault: false
+                    };
+                });
+
+                backgrounds = [...DEFAULT_BACKGROUNDS, ...mappedUploads];
+
+                // Restore saved active background index
+                const savedIndexRaw = localStorage.getItem(STORAGE_KEYS.BG_INDEX);
+                const parsedIndex = savedIndexRaw !== null ? parseInt(savedIndexRaw, 10) : 0;
+                currentBgIndex = (!isNaN(parsedIndex) && parsedIndex >= 0 && parsedIndex < backgrounds.length)
+                    ? parsedIndex
+                    : 0;
+
+                applyBackground(currentBgIndex);
+                renderPlaylistDrawer();
+            }
+
+            function applyBackground(index) {
+                if (!backgrounds.length) return;
+                currentBgIndex = ((index % backgrounds.length) + backgrounds.length) % backgrounds.length;
+                localStorage.setItem(STORAGE_KEYS.BG_INDEX, String(currentBgIndex));
+
+                const activeBg = backgrounds[currentBgIndex];
+                currentBgLabel.textContent = activeBg.name;
+                bgCounterPill.textContent = `${currentBgIndex + 1}/${backgrounds.length}`;
+
+                if (activeBg.type === 'image') {
+                    // Fade out video, fade in image
+                    bgVideo.classList.remove('opacity-100');
+                    bgVideo.classList.add('opacity-0');
+                    setTimeout(() => {
+                        if (backgrounds[currentBgIndex]?.type === 'image') {
+                            bgVideo.pause();
+                            bgVideo.removeAttribute('src');
+                        }
+                    }, 650);
+
+                    bgImage.src = activeBg.url;
+                    bgImage.classList.remove('hidden');
+                    requestAnimationFrame(() => {
+                        bgImage.classList.remove('opacity-0');
+                        bgImage.classList.add('opacity-100');
+                    });
+                } else {
+                    // Fade out image, fade in video
+                    bgImage.classList.remove('opacity-100');
+                    bgImage.classList.add('opacity-0');
+                    setTimeout(() => {
+                        if (backgrounds[currentBgIndex]?.type === 'video') {
+                            bgImage.classList.add('hidden');
+                        }
+                    }, 650);
+
+                    bgVideo.classList.remove('opacity-100');
+                    bgVideo.classList.add('opacity-0');
+
+                    bgVideo.src = activeBg.url;
+                    bgVideo.muted = true;
+                    bgVideo.loop = true;
+                    bgVideo.playsInline = true;
+                    bgVideo.load();
+
+                    const playPromise = bgVideo.play();
+                    if (playPromise !== undefined) {
+                        playPromise
+                            .then(() => {
+                                bgVideo.classList.remove('opacity-0');
+                                bgVideo.classList.add('opacity-100');
+                            })
+                            .catch((err) => {
+                                console.warn('Video autoplay/load fallback triggered:', err);
+                                showToast(`Using ambient backdrop (${activeBg.name} stream unavailable)`, 'info');
+                            });
+                    }
+                }
+
+                renderPlaylistDrawer();
+            }
+
+            // Handle unexpected video stream error gracefully
+            bgVideo.addEventListener('error', () => {
+                bgVideo.classList.remove('opacity-100');
+                bgVideo.classList.add('opacity-0');
+            });
+
+            bgVideo.addEventListener('loadeddata', () => {
+                if (backgrounds[currentBgIndex]?.type === 'video') {
+                    bgVideo.classList.remove('opacity-0');
+                    bgVideo.classList.add('opacity-100');
+                }
+            });
+
+            async function handleFileUpload(event) {
+                const files = Array.from(event.target.files || []);
+                if (!files.length) return;
+
+                let addedCount = 0;
+
+                for (const file of files) {
+                    const isVideo = file.type.startsWith('video/');
+                    const isImage = file.type.startsWith('image/');
+                    if (!isVideo && !isImage) {
+                        showToast(`Unsupported file: ${file.name}`, 'error');
+                        continue;
+                    }
+
+                    const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+                    const cleanName = file.name.replace(/\.[^/.]+$/, '').slice(0, 32) || 'Custom Scene';
+                    const type = isVideo ? 'video' : 'image';
+
+                    try {
+                        await saveUploadedBackgroundToDB({
+                            id,
+                            name: cleanName,
+                            type,
+                            blob: file,
+                            createdAt: Date.now()
+                        });
+
+                        const objectUrl = URL.createObjectURL(file);
+                        activeObjectUrls.push(objectUrl);
+
+                        backgrounds.push({
+                            id,
+                            name: cleanName,
+                            type,
+                            url: objectUrl,
+                            isDefault: false
+                        });
+                        addedCount++;
+                    } catch (err) {
+                        console.error('Error saving uploaded file:', err);
+                        showToast('Storage error saving background', 'error');
+                    }
+                }
+
+                // Reset input so the same file can be re-uploaded if deleted later
+                bgFileInput.value = '';
+
+                if (addedCount > 0) {
+                    // Automatically switch to the newly uploaded background
+                    applyBackground(backgrounds.length - 1);
+                    showToast(`Added & activated "${backgrounds[backgrounds.length - 1].name}"`);
+                }
+            }
+
+            async function handleDeleteBackground(id) {
+                const targetIdx = backgrounds.findIndex(bg => bg.id === id);
+                if (targetIdx === -1 || backgrounds[targetIdx].isDefault) return;
+
+                const removed = backgrounds[targetIdx];
+                await deleteUploadedBackgroundFromDB(id);
+                if (removed.url.startsWith('blob:')) {
+                    URL.revokeObjectURL(removed.url);
+                }
+
+                backgrounds.splice(targetIdx, 1);
+
+                if (currentBgIndex >= backgrounds.length) {
+                    currentBgIndex = Math.max(0, backgrounds.length - 1);
+                } else if (targetIdx < currentBgIndex) {
+                    currentBgIndex = Math.max(0, currentBgIndex - 1);
+                }
+
+                applyBackground(currentBgIndex);
+                showToast(`Removed "${removed.name}"`, 'info');
+            }
+
+            function renderPlaylistDrawer() {
+                bgPlaylistItems.innerHTML = '';
+                backgrounds.forEach((bg, idx) => {
+                    const isActive = idx === currentBgIndex;
+                    const row = document.createElement('div');
+                    row.className = `flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs transition cursor-pointer ${
+                        isActive
+                            ? 'bg-[#00f3ff]/15 neon-cyan-text border border-[#00f3ff]/50 shadow-[0_0_10px_rgba(0,243,255,0.2)]'
+                            : 'hover:bg-white/10 text-white/75 border border-transparent'
+                    }`;
+
+                    const leftPart = document.createElement('div');
+                    leftPart.className = 'flex items-center gap-2 min-w-0 flex-1';
+                    leftPart.innerHTML = `
+                        <span class="w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-[#00f3ff] shadow-[0_0_6px_#00f3ff]' : 'bg-white/30'}"></span>
+                        <span class="truncate font-medium">${bg.name}</span>
+                        <span class="text-[9px] uppercase px-1.5 py-0.2 rounded bg-black/40 border border-white/10 text-white/60 shrink-0">${bg.type}</span>
+                    `;
+                    leftPart.addEventListener('click', () => applyBackground(idx));
+
+                    row.appendChild(leftPart);
+
+                    if (!bg.isDefault) {
+                        const delBtn = document.createElement('button');
+                        delBtn.type = 'button';
+                        delBtn.title = 'Delete uploaded background';
+                        delBtn.className = 'ml-2 p-1 rounded-lg text-white/40 hover:text-rose-300 hover:bg-rose-500/15 transition shrink-0';
+                        delBtn.innerHTML = `
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                            </svg>
+                        `;
+                        delBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            handleDeleteBackground(bg.id);
+                        });
+                        row.appendChild(delBtn);
+                    }
+
+                    bgPlaylistItems.appendChild(row);
+                });
+            }
+
+            // -------------------- POMODORO TIMER & PERSISTENCE --------------------
+            function saveTimerState() {
+                const payload = {
+                    durations,
+                    timerState: {
+                        ...timerState,
+                        lastTickTimestamp: timerState.isRunning ? Date.now() : null
+                    }
+                };
+                try {
+                    localStorage.setItem(STORAGE_KEYS.TIMER_STATE, JSON.stringify(payload));
+                } catch (err) {
+                    console.warn('Unable to save timer state:', err);
+                }
+            }
+
+            function loadTimerState() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEYS.TIMER_STATE);
+                    if (!raw) return;
+                    const parsed = JSON.parse(raw);
+
+                    if (parsed.durations) {
+                        durations = {
+                            focus: Math.max(1, Number(parsed.durations.focus) || 25),
+                            short: Math.max(1, Number(parsed.durations.short) || 5),
+                            long: Math.max(1, Number(parsed.durations.long) || 15)
+                        };
+                        inputFocusMin.value = durations.focus;
+                        inputShortMin.value = durations.short;
+                        inputLongMin.value = durations.long;
+                    }
+
+                    if (parsed.timerState) {
+                        const saved = parsed.timerState;
+                        timerState.mode = ['focus', 'short', 'long'].includes(saved.mode) ? saved.mode : 'focus';
+                        timerState.totalSeconds = Number(saved.totalSeconds) || durations[timerState.mode] * 60;
+                        let rem = Number(saved.remainingSeconds);
+                        if (isNaN(rem) || rem < 0) rem = timerState.totalSeconds;
+
+                        // Account for elapsed wall-clock time if timer was running when user left
+                        if (saved.isRunning && saved.lastTickTimestamp) {
+                            const elapsedSec = Math.floor((Date.now() - saved.lastTickTimestamp) / 1000);
+                            rem = Math.max(0, rem - elapsedSec);
+                        }
+
+                        timerState.remainingSeconds = rem;
+                        timerState.isRunning = Boolean(saved.isRunning) && rem > 0;
+                    }
+                } catch (err) {
+                    console.warn('Failed to restore timer state:', err);
+                }
+            }
+
+            function updateTimerUI() {
+                const formatted = formatSecondsToMMSS(timerState.remainingSeconds);
+                timerDisplay.textContent = formatted;
+
+                const isBreakMode = timerState.mode !== 'focus';
+
+                // Switch neon theme dynamically between Cyan (Focus) and Pink (Breaks)
+                timerDisplay.className = `font-mono text-[44px] font-semibold tracking-tight tabular-nums leading-none ${
+                    isBreakMode ? 'neon-pink-text' : 'neon-cyan-text'
+                }`;
+
+                if (pomodoroCard) {
+                    pomodoroCard.style.borderColor = isBreakMode
+                        ? 'rgba(255, 42, 133, 0.38)'
+                        : 'rgba(0, 243, 255, 0.32)';
+                    pomodoroCard.style.boxShadow = isBreakMode
+                        ? '0 0 22px rgba(255, 42, 133, 0.16), inset 0 0 12px rgba(255, 42, 133, 0.06)'
+                        : '0 0 22px rgba(0, 243, 255, 0.14), inset 0 0 12px rgba(0, 243, 255, 0.06)';
+                }
+
+                // Update browser tab title so user can glance at remaining time
+                const modeLabel = timerState.mode === 'focus' ? 'Focus' : timerState.mode === 'short' ? 'Short Break' : 'Long Break';
+                document.title = timerState.isRunning ? `${formatted} — ${modeLabel} | Sanctuary` : 'Sanctuary — Minimalist Study Timer';
+
+                // Progress bar width
+                const pct = timerState.totalSeconds > 0
+                    ? Math.min(100, Math.max(0, (timerState.remainingSeconds / timerState.totalSeconds) * 100))
+                    : 0;
+                timerProgressBar.style.width = `${pct}%`;
+
+                // Mode button highlights
+                modeBtns.forEach(btn => {
+                    const isSelected = btn.dataset.mode === timerState.mode;
+                    if (isSelected) {
+                        btn.className = `mode-btn px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide transition-all duration-200 ${
+                            btn.dataset.mode === 'focus' ? 'neon-btn-cyan' : 'neon-btn-pink'
+                        }`;
+                    } else {
+                        btn.className = 'mode-btn px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide transition-all duration-200 text-white/65 hover:text-white';
+                    }
+                });
+
+                // Start/Pause button state
+                startPauseBtn.className = `flex-1 py-2 px-4 rounded-xl font-semibold text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-1.5 active:scale-[0.97] cursor-pointer ${
+                    isBreakMode ? 'neon-btn-pink' : 'neon-btn-cyan'
+                }`;
+
+                if (timerState.isRunning) {
+                    startPauseLabel.textContent = 'Pause';
+                    playIcon.classList.add('hidden');
+                    pauseIcon.classList.remove('hidden');
+                    timerStatusText.textContent = timerState.mode === 'focus'
+                        ? 'Deep focus active'
+                        : 'Recharging mind';
+                } else {
+                    startPauseLabel.textContent = timerState.remainingSeconds < timerState.totalSeconds && timerState.remainingSeconds > 0
+                        ? 'Resume'
+                        : 'Start';
+                    pauseIcon.classList.add('hidden');
+                    playIcon.classList.remove('hidden');
+                    timerStatusText.textContent = timerState.mode === 'focus'
+                        ? 'Ready to focus'
+                        : 'Ready for break';
+                }
+            }
+
+            function startTimer() {
+                if (timerState.isRunning) return;
+                if (timerState.remainingSeconds <= 0) {
+                    timerState.remainingSeconds = timerState.totalSeconds;
+                }
+
+                timerState.isRunning = true;
+                timerState.lastTickTimestamp = Date.now();
+                saveTimerState();
+                updateTimerUI();
+
+                timerInterval = setInterval(() => {
+                    const now = Date.now();
+                    const delta = Math.floor((now - timerState.lastTickTimestamp) / 1000);
+                    if (delta >= 1) {
+                        timerState.remainingSeconds = Math.max(0, timerState.remainingSeconds - delta);
+                        timerState.lastTickTimestamp = now;
+                        saveTimerState();
+                        updateTimerUI();
+
+                        if (timerState.remainingSeconds === 0) {
+                            handleTimerComplete();
+                        }
+                    }
+                }, 250);
+            }
+
+            function pauseTimer() {
+                if (!timerState.isRunning) return;
+                clearInterval(timerInterval);
+                timerInterval = null;
+                timerState.isRunning = false;
+                timerState.lastTickTimestamp = null;
+                saveTimerState();
+                updateTimerUI();
+            }
+
+            function toggleTimer() {
+                if (timerState.isRunning) {
+                    pauseTimer();
+                } else {
+                    startTimer();
+                }
+            }
+
+            function resetTimer() {
+                pauseTimer();
+                const mins = durations[timerState.mode] || 25;
+                timerState.totalSeconds = mins * 60;
+                timerState.remainingSeconds = mins * 60;
+                saveTimerState();
+                updateTimerUI();
+            }
+
+            function switchMode(newMode) {
+                if (!['focus', 'short', 'long'].includes(newMode)) return;
+                pauseTimer();
+                timerState.mode = newMode;
+                const mins = durations[newMode] || 25;
+                timerState.totalSeconds = mins * 60;
+                timerState.remainingSeconds = mins * 60;
+                saveTimerState();
+                updateTimerUI();
+            }
+
+            function handleTimerComplete() {
+                pauseTimer();
+                playCompletionChime();
+
+                if (timerState.mode === 'focus') {
+                    const completedSeconds = timerState.totalSeconds;
+                    const completedMinutes = Math.round(completedSeconds / 60);
+                    recordCompletedFocusSession(completedSeconds, completedMinutes);
+                    showToast(`Focus complete! +${completedMinutes}m added to total study time.`);
+                } else {
+                    showToast('Break finished! Ready for your next focus session.', 'info');
+                }
+
+                // Reset timer back to full duration of current mode so user can start next round cleanly
+                timerState.remainingSeconds = timerState.totalSeconds;
+                saveTimerState();
+                updateTimerUI();
+            }
+
+            // -------------------- STUDY TIME TRACKING & PERSISTENCE --------------------
+            function saveStudyStats() {
+                try {
+                    localStorage.setItem(STORAGE_KEYS.STUDY_STATS, JSON.stringify(studyStats));
+                } catch (err) {
+                    console.warn('Unable to save study stats:', err);
+                }
+            }
+
+            function loadStudyStats() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEYS.STUDY_STATS);
+                    if (!raw) return;
+                    const parsed = JSON.parse(raw);
+                    studyStats.totalFocusSeconds = Number(parsed.totalFocusSeconds) || 0;
+                    studyStats.completedPomodoros = Number(parsed.completedPomodoros) || 0;
+                    studyStats.history = Array.isArray(parsed.history) ? parsed.history : [];
+                } catch (err) {
+                    console.warn('Failed to parse study stats:', err);
+                }
+            }
+
+            function recordCompletedFocusSession(seconds, minutes) {
+                studyStats.totalFocusSeconds += seconds;
+                studyStats.completedPomodoros += 1;
+
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dateStr = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+                studyStats.history.unshift({
+                    id: Date.now(),
+                    minutes,
+                    timestamp: `${dateStr}, ${timeStr}`
+                });
+
+                // Keep last 30 sessions
+                if (studyStats.history.length > 30) {
+                    studyStats.history = studyStats.history.slice(0, 30);
+                }
+
+                saveStudyStats();
+                updateStatsUI();
+            }
+
+            function updateStatsUI() {
+                const formatted = formatStudyDuration(studyStats.totalFocusSeconds);
+                totalStudyBadge.textContent = `Total Focus: ${formatted}`;
+                statTotalTime.textContent = formatted;
+                statTotalSessions.textContent = String(studyStats.completedPomodoros);
+
+                if (!studyStats.history.length) {
+                    sessionHistoryList.innerHTML = `<p class="text-xs text-white/40 italic py-2 text-center">Complete a focus session to log progress.</p>`;
+                    return;
+                }
+
+                sessionHistoryList.innerHTML = studyStats.history.map(item => `
+                    <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/5 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                            <span class="font-medium text-white/90">+${item.minutes} min Focus</span>
+                        </div>
+                        <span class="text-[11px] text-white/45">${item.timestamp}</span>
+                    </div>
+                `).join('');
+            }
+
+            // -------------------- EVENT LISTENERS --------------------
+            // Background controls
+            switchBgBtn.addEventListener('click', () => {
+                applyBackground(currentBgIndex + 1);
+            });
+
+            uploadBgBtn.addEventListener('click', () => {
+                bgFileInput.click();
+            });
+
+            bgFileInput.addEventListener('change', handleFileUpload);
+
+            playlistToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                playlistDrawer.classList.toggle('hidden');
+                statsPopover.classList.add('hidden');
+                statsChevron.classList.remove('rotate-180');
+            });
+
+            closePlaylistBtn.addEventListener('click', () => {
+                playlistDrawer.classList.add('hidden');
+            });
+
+            // Stats popover controls
+            statsToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = statsPopover.classList.contains('hidden');
+                statsPopover.classList.toggle('hidden');
+                statsChevron.classList.toggle('rotate-180', isHidden);
+                playlistDrawer.classList.add('hidden');
+            });
+
+            closeStatsBtn.addEventListener('click', () => {
+                statsPopover.classList.add('hidden');
+                statsChevron.classList.remove('rotate-180');
+            });
+
+            // Safe two-step reset button (no confirm/alert dialog)
+            resetStatsBtn.addEventListener('click', () => {
+                if (!resetConfirmPending) {
+                    resetConfirmPending = true;
+                    resetStatsBtn.textContent = 'Click again to confirm';
+                    resetStatsBtn.classList.add('bg-rose-500/20', 'text-rose-200');
+                    resetConfirmTimeout = setTimeout(() => {
+                        resetConfirmPending = false;
+                        resetStatsBtn.textContent = 'Reset Stats';
+                        resetStatsBtn.classList.remove('bg-rose-500/20', 'text-rose-200');
+                    }, 3500);
+                    return;
+                }
+
+                clearTimeout(resetConfirmTimeout);
+                resetConfirmPending = false;
+                resetStatsBtn.textContent = 'Reset Stats';
+                resetStatsBtn.classList.remove('bg-rose-500/20', 'text-rose-200');
+
+                studyStats = {
+                    totalFocusSeconds: 0,
+                    completedPomodoros: 0,
+                    history: []
+                };
+                saveStudyStats();
+                updateStatsUI();
+                showToast('Study statistics reset', 'info');
+            });
+
+            // Pomodoro controls
+            startPauseBtn.addEventListener('click', toggleTimer);
+            resetTimerBtn.addEventListener('click', resetTimer);
+
+            modeBtns.forEach(btn => {
+                btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+            });
+
+            timerSettingsBtn.addEventListener('click', () => {
+                durationCustomizer.classList.toggle('hidden');
+            });
+
+            saveDurationsBtn.addEventListener('click', () => {
+                const f = Math.min(180, Math.max(1, parseInt(inputFocusMin.value, 10) || 25));
+                const s = Math.min(60, Math.max(1, parseInt(inputShortMin.value, 10) || 5));
+                const l = Math.min(90, Math.max(1, parseInt(inputLongMin.value, 10) || 15));
+
+                durations = { focus: f, short: s, long: l };
+                inputFocusMin.value = f;
+                inputShortMin.value = s;
+                inputLongMin.value = l;
+
+                durationCustomizer.classList.add('hidden');
+                resetTimer();
+                showToast('Timer durations updated');
+            });
+
+            // Keyboard shortcut: Space to Start/Pause (when not typing in inputs)
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && !['INPUT', 'TEXTAREA', 'BUTTON'].includes(document.activeElement.tagName)) {
+                    e.preventDefault();
+                    toggleTimer();
+                }
+            });
+
+            // Close popovers when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!statsPopover.contains(e.target) && !statsToggleBtn.contains(e.target)) {
+                    statsPopover.classList.add('hidden');
+                    statsChevron.classList.remove('rotate-180');
+                }
+                if (!playlistDrawer.contains(e.target) && !playlistToggleBtn.contains(e.target)) {
+                    playlistDrawer.classList.add('hidden');
+                }
+            });
+
+            // Save state reliably on tab hide or unload
+            window.addEventListener('beforeunload', () => {
+                saveTimerState();
+                saveStudyStats();
+            });
+
+            document.addEventListener('visibilitychange', () => {
+                saveTimerState();
+                saveStudyStats();
+            });
+
+            // -------------------- INITIALIZE APPLICATION --------------------
+            async function bootstrap() {
+                loadStudyStats();
+                updateStatsUI();
+
+                loadTimerState();
+                updateTimerUI();
+
+                // If timer was active before reload and still has time left, resume countdown automatically
+                if (timerState.isRunning && timerState.remainingSeconds > 0) {
+                    timerState.isRunning = false; // Reset flag so startTimer() initializes interval cleanly
+                    startTimer();
+                } else if (timerState.remainingSeconds === 0 && timerState.isRunning) {
+                    // Finished while user was away
+                    handleTimerComplete();
+                }
+
+                await initBackgrounds();
+            }
+
+            bootstrap();
+        })();
+    </script>
+</body>
+</html>
